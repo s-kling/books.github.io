@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Tracker</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <header>
+    <div class="container header-inner">
+        <div class="logo">&#128218; Reading Tracker</div>
+        <div class="target-date-wrap">
+        <label for="target-date">Finish all books by:</label>
+        <input type="date" id="target-date">
+        </div>
+    </div>
+    </header>
+
+    <main class="container">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-card">
+        <div class="stat-value" id="stat-days">&#8212;</div>
+        <div class="stat-label">Days Left</div>
+        </div>
+        <div class="stat-card">
+        <div class="stat-value" id="stat-pages">&#8212;</div>
+        <div class="stat-label">Pages Remaining</div>
+        </div>
+        <div class="stat-card highlight">
+        <div class="stat-value" id="stat-per-night">&#8212;</div>
+        <div class="stat-label">Pages / Night</div>
+        </div>
+        <div class="stat-card">
+        <div class="stat-value" id="stat-books">&#8212;</div>
+        <div class="stat-label">Books Left</div>
+        </div>
+    </div>
+
+    <!-- Currently Reading -->
+    <section class="section">
+        <h2 class="section-title">Currently Reading</h2>
+        <div id="current-reading-content"></div>
+    </section>
+
+    <!-- Library -->
+    <section class="section">
+        <div class="section-header">
+        <h2 class="section-title no-margin">My Library</h2>
+        <button class="btn btn-primary" id="add-book-btn">+ Add Book</button>
+        </div>
+        <div class="filters">
+        <div class="filter-group">
+            <span class="filter-label">Genre:</span>
+            <div class="filter-pills" id="genre-filter"></div>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">Status:</span>
+            <div class="filter-pills" id="status-filter">
+            <button class="filter-pill active" data-status="all">All</button>
+            <button class="filter-pill" data-status="unread">Unread</button>
+            <button class="filter-pill" data-status="reading">Reading</button>
+            <button class="filter-pill" data-status="completed">Completed</button>
+            </div>
+        </div>
+        </div>
+        <div class="books-grid" id="books-grid"></div>
+    </section>
+
+    </main>
+
+    <!-- ── Book Add/Edit Modal ───────────────────────────────── -->
+    <div class="modal-backdrop hidden" id="book-modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+        <h3 id="book-modal-title">Add Book</h3>
+        <button class="close-btn" onclick="closeModal('book-modal-backdrop')">&times;</button>
+        </div>
+        <div class="modal-body">
+        <form id="book-form" autocomplete="off">
+            <input type="hidden" id="edit-book-id">
+            <div class="form-row">
+            <div class="form-group">
+                <label for="input-title">Title <span class="required">*</span></label>
+                <input type="text" id="input-title" placeholder="Book title" required>
+            </div>
+            <div class="form-group">
+                <label for="input-author">Author</label>
+                <input type="text" id="input-author" placeholder="Author name">
+            </div>
+            </div>
+            <div class="form-row">
+            <div class="form-group">
+                <label for="input-genres">Genres <span class="hint">(comma-separated)</span></label>
+                <input type="text" id="input-genres" placeholder="e.g. Fiction, Mystery">
+            </div>
+            <div class="form-group">
+                <label for="input-total-pages">
+                Total Pages <span class="hint" id="total-pages-hint">(auto from chapters)</span>
+                </label>
+                <input type="number" id="input-total-pages" placeholder="e.g. 320" min="1">
+            </div>
+            </div>
+            <div class="form-group">
+            <label>
+                Chapters
+                <span class="hint">(optional — enter start &amp; end page per chapter)</span>
+            </label>
+            <div id="chapters-container"></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="add-chapter-btn">
+                + Add Chapter
+            </button>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('book-modal-backdrop')">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Save Book</button>
+            </div>
+        </form>
+        </div>
+    </div>
+    </div>
+
+    <!-- ── Log Progress Modal ────────────────────────────────── -->
+    <div class="modal-backdrop hidden" id="log-modal-backdrop">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+        <h3>Log Tonight's Reading</h3>
+        <button class="close-btn" onclick="closeModal('log-modal-backdrop')">&times;</button>
+        </div>
+        <div id="log-modal-body" class="modal-body"></div>
+    </div>
+    </div>
+</body>
+</html>
