@@ -667,6 +667,89 @@ class ReadingTracker {
         showToast(`Progress updated! ${page} / ${book.totalPages} pages`);
         this.render();
     }
+
+    // ──────────────────────────────────────────────────────────
+    // Import / Export
+    // ──────────────────────────────────────────────────────────
+
+    exportData() {
+        const exportObject = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+
+            books: this.books,
+            currentlyReadingBookId: this.currentlyReadingBookId,
+            targetDate: this.targetDate,
+            nightlyReadingPlan: this.nightlyReadingPlan,
+        };
+
+        const blob = new Blob([JSON.stringify(exportObject, null, 2)], {
+            type: 'application/json',
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reading-tracker-${new Date().toISOString().slice(0, 10)}.json`;
+
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        URL.revokeObjectURL(url);
+
+        showToast('Data exported successfully');
+    }
+
+    async importData(file, mode = 'merge') {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (!Array.isArray(data.books)) {
+                throw new Error('Invalid backup file');
+            }
+
+            if (mode === 'override') {
+                this.books = data.books || [];
+                this.currentlyReadingBookId = data.currentlyReadingBookId || null;
+                this.targetDate = data.targetDate || this.targetDate;
+                this.nightlyReadingPlan = data.nightlyReadingPlan || null;
+            } else {
+                const existingBooks = new Map(this.books.map((b) => [b.id, b]));
+
+                for (const importedBook of data.books || []) {
+                    const existing = existingBooks.get(importedBook.id);
+
+                    if (!existing) {
+                        this.books.push(importedBook);
+                        continue;
+                    }
+
+                    // Keep whichever version has more progress
+
+                    if (importedBook.currentPage > existing.currentPage) {
+                        Object.assign(existing, importedBook);
+                    }
+                }
+            }
+
+            this.saveBooks();
+            this.saveCurrentBook();
+            this.saveTargetDate();
+            this.saveNightlyPlan();
+
+            this.render();
+
+            showToast(
+                mode === 'override' ? 'Data replaced successfully' : 'Data merged successfully',
+            );
+        } catch (error) {
+            console.error(error);
+            alert('Unable to import file');
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -712,4 +795,29 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal('log-modal-backdrop');
         }
     });
+});
+
+// Export button
+document.getElementById('export-data-btn').addEventListener('click', () => {
+    tracker.exportData();
+});
+
+// Import button
+document.getElementById('import-data-btn').addEventListener('click', () => {
+    document.getElementById('import-file-input').click();
+});
+
+// Import file selection
+document.getElementById('import-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const override = confirm(
+        'Press OK to OVERRIDE all existing data.\n\nPress Cancel to MERGE imported books into existing data.',
+    );
+
+    await tracker.importData(file, override ? 'override' : 'merge');
+
+    e.target.value = '';
 });

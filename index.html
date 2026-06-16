@@ -11,13 +11,13 @@
 <body>
 
     <header>
-    <div class="container header-inner">
-        <div class="logo">&#128218; Reading Tracker</div>
-        <div class="target-date-wrap">
-        <label for="target-date">Finish all books by:</label>
-        <input type="date" id="target-date">
+        <div class="container header-inner">
+            <div class="logo">&#128218; Reading Tracker</div>
+            <div class="target-date-wrap">
+            <label for="target-date">Finish all books by:</label>
+            <input type="date" id="target-date">
+            </div>
         </div>
-    </div>
     </header>
 
     <main class="container">
@@ -53,6 +53,28 @@
         <div class="section-header">
         <h2 class="section-title no-margin">My Library</h2>
         <button class="btn btn-primary" id="add-book-btn">+ Add Book</button>
+        <div class="section-header">        
+            <div style="display:flex; gap:0.5rem;">
+                <button class="btn btn-secondary" id="export-data-btn">
+                    Export Data
+                </button>
+        
+                <button class="btn btn-secondary" id="import-data-btn">
+                    Import Data
+                </button>
+        
+                <input
+                    type="file"
+                    id="import-file-input"
+                    accept=".json"
+                    style="display:none;"
+                >
+        
+                <button class="btn btn-primary" id="add-book-btn">
+                    + Add Book
+                </button>
+            </div>
+        </div>
         </div>
         <div class="filters">
         <div class="filter-group">
