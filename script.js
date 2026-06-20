@@ -117,6 +117,15 @@ class ReadingTracker {
         return book;
     }
 
+    ignoreBook(bookId, previousStatus) {
+        const book = this.books.find((b) => b.id === bookId);
+        if (!book) return;
+
+        // Flip between ignored and previous status (unread/reading)
+        book.status = previousStatus === 'ignored' ? '' : 'ignored';
+        this.saveBooks();
+    }
+
     deleteBook(bookId) {
         this.books = this.books.filter((b) => b.id !== bookId);
         if (this.currentlyReadingBookId === bookId) {
@@ -236,7 +245,9 @@ class ReadingTracker {
         const target = new Date(this.targetDate);
         const daysRemaining = Math.max(0, Math.ceil((target - today) / (1000 * 60 * 60 * 24)));
 
-        const booksToRead = this.books.filter((b) => b.status !== 'completed');
+        const booksToRead = this.books.filter(
+            (b) => b.status !== 'completed' && b.status !== 'ignored',
+        );
         const totalPages = booksToRead.reduce(
             (sum, b) => sum + Math.max(0, b.totalPages - b.currentPage),
             0,
@@ -389,16 +400,16 @@ class ReadingTracker {
         const chapter = document.createElement('div');
         chapter.className = 'chapter-input-group';
         chapter.innerHTML = `
-      <div>
-        <label>Start Page</label>
-        <input type="number" class="chapter-start" min="1" placeholder="1">
-      </div>
-      <div>
-        <label>End Page</label>
-        <input type="number" class="chapter-end" min="1" placeholder="10">
-      </div>
-      <button type="button" class="btn btn-danger btn-sm" onclick="tracker.removeChapterInput(this)">Remove</button>
-    `;
+            <div>
+                <label>Start Page</label>
+                <input type="number" class="chapter-start" min="1" placeholder="1">
+            </div>
+            <div>
+                <label>End Page</label>
+                <input type="number" class="chapter-end" min="1" placeholder="10">
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="tracker.removeChapterInput(this)">Remove</button>
+            `;
         container.appendChild(chapter);
     }
 
@@ -472,8 +483,8 @@ class ReadingTracker {
             const pagesTonight = endPage - startPage;
             nightlyInfo = `
                 <div class="progress-item">
-                <div class="progress-label">Tonight's Target: Pages ${startPage} → ${endPage} (${pagesTonight} pages)</div>
-                <button class="btn btn-primary" onclick="tracker.openLogModal()">Log Progress</button>
+                    <div class="progress-label">Tonight's Target: Pages ${startPage} → ${endPage} (${pagesTonight} pages)</div>
+                    <button class="btn btn-primary" onclick="tracker.openLogModal()">Log Progress</button>
                 </div>
             `;
         }
@@ -548,39 +559,72 @@ class ReadingTracker {
         const progressPercent = (book.currentPage / book.totalPages) * 100;
         const isCurrentBook = book.id === this.currentlyReadingBookId;
         const isCurrent = isCurrentBook ? 'style="opacity: 1;"' : '';
+        const isIgnored =
+            book.status === 'ignored'
+                ? `
+                    style="opacity: 0.5; cursor: not-allowed;"
+                `
+                : '';
 
         return `
-      <div class="book-card">
-        <div class="book-cover">📖</div>
-        <div class="book-info">
-          <div class="book-title">${book.title}</div>
-          <div class="book-author">${book.author || 'Unknown'}</div>
-          <div class="book-genres">
-            ${book.genres.map((g) => `<span class="genre-tag">${g}</span>`).join('')}
-          </div>
-          <div class="book-meta">
-            <span>${book.currentPage} / ${book.totalPages} pages</span>
-            <span class="book-status ${book.status}">${book.status}</span>
-          </div>
-          <div class="progress-bar" style="margin: var(--spacing-md) 0;">
-            <div class="progress-fill" style="width: ${progressPercent}%"></div>
-          </div>
-          <div class="book-actions">
-            ${
-                book.status !== 'completed'
-                    ? `
-              <button class="btn btn-secondary btn-sm" onclick="tracker.setCurrentlyReading('${book.id}')">
-                ${isCurrentBook ? '✓ Reading' : 'Read Now'}
-              </button>
-            `
-                    : ''
-            }
-            <button class="btn btn-ghost btn-sm" onclick="tracker.editBook('${book.id}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="tracker.deleteBook('${book.id}'); tracker.render();">Delete</button>
-          </div>
-        </div>
-      </div>
-    `;
+            <div class="book-card">
+            
+            <div class="book-cover" ${isIgnored}>📖</div>
+                <div class="book-info">
+                    <div ${isIgnored}>
+                        <div class="book-title">${book.title}</div>
+                        <div class="book-author">${book.author || 'Unknown'}</div>
+                        <div class="book-genres">
+                            ${book.genres.map((g) => `<span class="genre-tag">${g}</span>`).join('')}
+                        </div>
+                        <div class="book-meta">
+                            <span>${book.currentPage} / ${book.totalPages} pages</span>
+                            <span class="book-status ${book.status}">${book.status}</span>
+                        </div>
+                        <div class="progress-bar" style="margin: var(--spacing-md) 0;">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                    </div>
+                    ${
+                        book.status !== 'completed'
+                            ? `
+                    
+                        <div class="book-actions">
+                            ${
+                                // If the book has not been completed yet, show the "Read Now" button
+                                book.status !== 'ignored' && !isCurrentBook
+                                    ? `
+                                    <button class="btn btn-secondary btn-sm" onclick="tracker.setCurrentlyReading('${book.id}')">
+                                        Read Now
+                                    </button>
+                                    `
+                                    : ''
+                            }
+
+                            <button class="btn btn-ghost btn-sm" onclick="tracker.editBook('${book.id}')">
+                                Edit
+                            </button>
+
+                            ${
+                                // If is the current book, we only want to be able to edit
+                                !isCurrentBook && book.status !== 'completed'
+                                    ? `
+                                        <button class="btn btn-ghost btn-sm" onclick="tracker.ignoreBook('${book.id}', '${book.status}'); tracker.render();">
+                                            ${book.status === 'ignored' ? 'Unignore' : 'Ignore'}
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="tracker.deleteBook('${book.id}'); tracker.render();">
+                                            Delete
+                                        </button>
+                                        `
+                                    : ''
+                            }
+                        </div>
+                        `
+                            : ''
+                    }
+                </div>
+            </div>
+            `;
     }
 
     editBook(bookId) {
