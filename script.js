@@ -161,6 +161,7 @@ class ReadingTracker {
         this.saveBooks();
         this.saveCurrentBook();
         this.calculateNightlyReading();
+        this.render();
     }
 
     logProgress(bookId, pageNumber) {
@@ -266,11 +267,46 @@ class ReadingTracker {
     // Filtering
     // ──────────────────────────────────────────────────────────
 
-    getFilteredBooks(statusFilter = 'all', genreFilter = null) {
-        return this.books.filter((book) => {
+    getFilteredBooks(statusFilter = 'all', genreFilter = 'all') {
+        // Filter books, then sort by whatever is selected to sort by
+
+        let filteredBooks = this.books.filter((book) => {
             const statusMatch = statusFilter === 'all' || book.status === statusFilter;
-            const genreMatch = !genreFilter || book.genres.includes(genreFilter);
+            const genreMatch = genreFilter === 'all' || book.genres.includes(genreFilter);
             return statusMatch && genreMatch;
+        });
+
+        const sortBy = document.querySelector('[data-sort].active')?.dataset.sort || 'default';
+
+        return filteredBooks.sort((a, b) => {
+            switch (sortBy) {
+                case 'title-asc':
+                    return a.title.localeCompare(b.title);
+                case 'title-desc':
+                    return b.title.localeCompare(a.title);
+                case 'author-asc':
+                    return a.author.localeCompare(b.author);
+                case 'author-desc':
+                    return b.author.localeCompare(a.author);
+                case 'progress-asc':
+                    const aProgressAsc = a.currentPage / a.totalPages;
+                    const bProgressAsc = b.currentPage / b.totalPages;
+                    return aProgressAsc - bProgressAsc; // lowest progress first
+                case 'progress-desc':
+                    const aProgressDesc = a.currentPage / a.totalPages;
+                    const bProgressDesc = b.currentPage / b.totalPages;
+                    return bProgressDesc - aProgressDesc; // highest progress first
+                case 'pages-asc':
+                    const aPagesAsc = a.totalPages - a.currentPage;
+                    const bPagesAsc = b.totalPages - b.currentPage;
+                    return aPagesAsc - bPagesAsc; // least pages left first
+                case 'pages-desc':
+                    const aPagesDesc = a.totalPages - a.currentPage;
+                    const bPagesDesc = b.totalPages - b.currentPage;
+                    return bPagesDesc - aPagesDesc; // most pages left first
+                default:
+                    return new Date(a.dateAdded) - new Date(b.dateAdded); // newest first
+            }
         });
     }
 
@@ -320,12 +356,15 @@ class ReadingTracker {
     setupFilterListeners() {
         const statusButtons = document.querySelectorAll('[data-status]');
         const genreButtons = document.querySelectorAll('[data-genre]');
+        const sortButtons = document.querySelectorAll('[data-sort]');
 
         statusButtons.forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 statusButtons.forEach((b) => b.classList.remove('active'));
                 e.target.classList.add('active');
-                this.renderBooks(e.target.dataset.status, null);
+
+                const genre = document.querySelector('[data-genre].active')?.dataset.genre || 'all';
+                this.renderBooks(e.target.dataset.status, genre);
             });
         });
 
@@ -340,8 +379,19 @@ class ReadingTracker {
                 } else {
                     const status =
                         document.querySelector('[data-status].active')?.dataset.status || 'all';
-                    this.renderBooks(status, null);
+                    this.renderBooks(status, 'all');
                 }
+            });
+        });
+
+        sortButtons.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                sortButtons.forEach((b) => b.classList.remove('active'));
+                e.target.classList.add('active');
+                const status =
+                    document.querySelector('[data-status].active')?.dataset.status || 'all';
+                const genre = document.querySelector('[data-genre].active')?.dataset.genre || 'all';
+                this.renderBooks(status, genre);
             });
         });
     }
@@ -445,7 +495,7 @@ class ReadingTracker {
         this.renderStats();
         this.renderCurrentlyReading();
         this.renderGenreFilters();
-        this.renderBooks('all', null);
+        this.renderBooks('all', 'all');
     }
 
     renderStats() {
@@ -532,16 +582,16 @@ class ReadingTracker {
         this.setupFilterListeners();
     }
 
-    renderBooks(statusFilter = 'all', genreFilter = null) {
+    renderBooks(statusFilter = 'all', genreFilter = 'all') {
         const booksGrid = document.getElementById('books-grid');
         const books = this.getFilteredBooks(statusFilter, genreFilter);
 
         if (books.length === 0) {
             booksGrid.innerHTML = `
-        <div class="empty-state" style="grid-column: 1 / -1;">
-          <p>No books found with those filters.</p>
-        </div>
-      `;
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <p>No books found with those filters.</p>
+                </div>
+            `;
             return;
         }
 
@@ -644,16 +694,16 @@ class ReadingTracker {
             const group = document.createElement('div');
             group.className = 'chapter-input-group';
             group.innerHTML = `
-        <div>
-          <label>Start Page</label>
-          <input type="number" class="chapter-start" value="${chapter.startPage}" min="1">
-        </div>
-        <div>
-          <label>End Page</label>
-          <input type="number" class="chapter-end" value="${chapter.endPage}" min="1">
-        </div>
-        <button type="button" class="btn btn-danger btn-sm" onclick="tracker.removeChapterInput(this)">Remove</button>
-      `;
+                <div>
+                    <label>Start Page</label>
+                    <input type="number" class="chapter-start" value="${chapter.startPage}" min="1">
+                </div>
+                <div>
+                    <label>End Page</label>
+                    <input type="number" class="chapter-end" value="${chapter.endPage}" min="1">
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="tracker.removeChapterInput(this)">Remove</button>
+            `;
             chaptersContainer.appendChild(group);
         });
 

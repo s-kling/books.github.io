@@ -76,19 +76,34 @@
         </div>
         </div>
         <div class="filters">
-        <div class="filter-group">
-            <span class="filter-label">Genre:</span>
-            <div class="filter-pills" id="genre-filter"></div>
-        </div>
-        <div class="filter-group">
-            <span class="filter-label">Status:</span>
-            <div class="filter-pills" id="status-filter">
-            <button class="filter-pill active" data-status="all">All</button>
-            <button class="filter-pill" data-status="unread">Unread</button>
-            <button class="filter-pill" data-status="reading">Reading</button>
-            <button class="filter-pill" data-status="completed">Completed</button>
+            <div class="filter-group">
+                <span class="filter-label">Genre:</span>
+                <div class="filter-pills" id="genre-filter"></div>
             </div>
-        </div>
+            <div class="filter-group">
+                <span class="filter-label">Status:</span>
+                <div class="filter-pills" id="status-filter">
+                <button class="filter-pill active" data-status="all">All</button>
+                <button class="filter-pill" data-status="unread">Unread</button>
+                <button class="filter-pill" data-status="reading">Reading</button>
+                <button class="filter-pill" data-status="ignored">Ignored</button>
+                <button class="filter-pill" data-status="completed">Completed</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Sort By:</span>
+                <div class="filter-pills" id="sort-filter">
+                    <button class="filter-pill active" data-sort="default">Default</button>
+                    <button class="filter-pill" data-sort="title-asc">Title A-Z</button>
+                    <button class="filter-pill" data-sort="title-desc">Title Z-A</button>
+                    <button class="filter-pill" data-sort="author-asc">Author A-Z</button>
+                    <button class="filter-pill" data-sort="author-desc">Author Z-A</button>
+                    <button class="filter-pill" data-sort="progress-asc">Progress ↑</button>
+                    <button class="filter-pill" data-sort="progress-desc">Progress ↓</button>
+                    <button class="filter-pill" data-sort="pages-asc">Pages ↑</button>
+                    <button class="filter-pill" data-sort="pages-desc">Pages ↓</button>
+                </div>
+            </div>
         </div>
         <div class="books-grid" id="books-grid"></div>
     </section>
