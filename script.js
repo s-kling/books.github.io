@@ -188,7 +188,9 @@ class ReadingTracker {
             return;
         }
 
-        const booksToRead = this.books.filter((b) => b.status !== 'completed');
+        const booksToRead = this.books.filter(
+            (b) => b.status !== 'completed' && b.status !== 'ignored',
+        );
         const totalPagesRemaining = booksToRead.reduce((sum, book) => {
             return sum + Math.max(0, book.totalPages - book.currentPage);
         }, 0);
@@ -211,8 +213,6 @@ class ReadingTracker {
             const earlyChapter = [...currentBook.chapters]
                 .reverse()
                 .find((c) => c.endPage < endPage)?.endPage;
-
-            console.log(earlyChapter, lateChapter, endPage);
 
             if (lateChapter && Math.abs(lateChapter - endPage) < 10) {
                 // willing to read up to 10 pages further to finish a chapter
