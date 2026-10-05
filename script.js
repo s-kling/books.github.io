@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
     CURRENT_BOOK: 'reading_tracker_current_book',
     TARGET_DATE: 'reading_tracker_target_date',
     CURRENT_NIGHT_PLAN: 'reading_tracker_night_plan',
+    READING_HISTORY: 'reading_tracker_history',
 };
 
 class ReadingTracker {
@@ -19,6 +20,7 @@ class ReadingTracker {
         this.currentlyReadingBookId = this.loadCurrentBook();
         this.targetDate = this.loadTargetDate();
         this.nightlyReadingPlan = this.loadNightlyPlan();
+        this.readingHistory = this.loadReadingHistory();
         this.init();
     }
 
@@ -53,6 +55,11 @@ class ReadingTracker {
         return stored ? JSON.parse(stored) : null;
     }
 
+    loadReadingHistory() {
+        const stored = localStorage.getItem(STORAGE_KEYS.READING_HISTORY);
+        return stored ? JSON.parse(stored) : [];
+    }
+
     saveBooks() {
         localStorage.setItem(STORAGE_KEYS.BOOKS, JSON.stringify(this.books));
     }
@@ -78,6 +85,18 @@ class ReadingTracker {
         } else {
             localStorage.removeItem(STORAGE_KEYS.CURRENT_NIGHT_PLAN);
         }
+    }
+
+    saveReadingHistory() {
+        localStorage.setItem(STORAGE_KEYS.READING_HISTORY, JSON.stringify(this.readingHistory));
+    }
+
+    getLocalDateString(date = new Date()) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
     }
 
     // ──────────────────────────────────────────────────────────
@@ -168,7 +187,25 @@ class ReadingTracker {
         const book = this.getBook(bookId);
         if (!book) return;
 
-        book.currentPage = Math.min(pageNumber, book.totalPages);
+        const previousPage = book.currentPage;
+        const newPage = Math.min(pageNumber, book.totalPages);
+        const pagesRead = newPage - previousPage;
+
+        book.currentPage = newPage;
+
+        // Record only newly read pages.
+        if (pagesRead > 0) {
+            const today = this.getLocalDateString();
+
+            this.readingHistory.push({
+                date: today,
+                bookId: bookId,
+                pages: pagesRead,
+            });
+
+            this.saveReadingHistory();
+        }
+
         if (book.currentPage >= book.totalPages) {
             book.status = 'completed';
         }
@@ -255,11 +292,18 @@ class ReadingTracker {
         );
         const pagesPerNight = daysRemaining > 0 ? Math.ceil(totalPages / daysRemaining) : 0;
 
+        const todayString = this.getLocalDateString();
+
+        const pagesReadToday = this.readingHistory
+            .filter((entry) => entry.date === todayString)
+            .reduce((sum, entry) => sum + entry.pages, 0);
+
         return {
             daysRemaining,
             pagesRemaining: totalPages,
             pagesPerNight,
             booksRemaining: booksToRead.length,
+            pagesReadToday,
         };
     }
 
@@ -493,6 +537,7 @@ class ReadingTracker {
     render() {
         this.calculateNightlyReading();
         this.renderStats();
+        this.renderReadingHistory();
         this.renderCurrentlyReading();
         this.renderGenreFilters();
         this.renderBooks('all', 'all');
@@ -504,6 +549,183 @@ class ReadingTracker {
         document.getElementById('stat-pages').textContent = stats.pagesRemaining.toLocaleString();
         document.getElementById('stat-per-night').textContent = stats.pagesPerNight;
         document.getElementById('stat-books').textContent = stats.booksRemaining;
+        document.getElementById('stat-today').textContent = stats.pagesReadToday.toLocaleString();
+    }
+
+    renderReadingHistory() {
+        const canvas = document.getElementById('reading-history-chart');
+
+        if (!canvas) return;
+
+        const container = canvas.parentElement;
+        const rect = container.getBoundingClientRect();
+
+        const width = Math.max(300, rect.width - 32);
+        const height = 300;
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+
+        const ctx = canvas.getContext('2d');
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        // ─────────────────────────────────────────────
+        // Get the last 7 days
+        // ─────────────────────────────────────────────
+
+        const days = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+
+            date.setHours(12, 0, 0, 0);
+            date.setDate(date.getDate() - i);
+
+            days.push({
+                date: this.getLocalDateString(date),
+                label: date.toLocaleDateString(undefined, {
+                    weekday: 'short',
+                }),
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        // Calculate pages for each day
+        // ─────────────────────────────────────────────
+
+        const pagesByDate = {};
+
+        days.forEach((day) => {
+            pagesByDate[day.date] = 0;
+        });
+
+        this.readingHistory.forEach((entry) => {
+            if (pagesByDate[entry.date] !== undefined) {
+                pagesByDate[entry.date] += Number(entry.pages) || 0;
+            }
+        });
+
+        const values = days.map((day) => pagesByDate[day.date]);
+
+        // ─────────────────────────────────────────────
+        // Chart dimensions
+        // ─────────────────────────────────────────────
+
+        const padding = {
+            top: 25,
+            right: 20,
+            bottom: 45,
+            left: 45,
+        };
+
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+
+        const maxValue = Math.max(...values, 10);
+        const yMax = Math.ceil(maxValue / 10) * 10;
+
+        // ─────────────────────────────────────────────
+        // Grid
+        // ─────────────────────────────────────────────
+
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        for (let i = 0; i <= 4; i++) {
+            const value = (yMax / 4) * i;
+            const y = padding.top + chartHeight - (value / yMax) * chartHeight;
+
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(width - padding.right, y);
+
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillText(Math.round(value), padding.left - 10, y);
+        }
+
+        // ─────────────────────────────────────────────
+        // Calculate points
+        // ─────────────────────────────────────────────
+
+        const points = values.map((value, index) => {
+            const x = padding.left + (index / (days.length - 1)) * chartWidth;
+
+            const y = padding.top + chartHeight - (value / yMax) * chartHeight;
+
+            return { x, y, value };
+        });
+
+        // ─────────────────────────────────────────────
+        // X-axis labels
+        // ─────────────────────────────────────────────
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.font = '12px sans-serif';
+
+        points.forEach((point, index) => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+
+            ctx.fillText(days[index].label, point.x, height - padding.bottom + 15);
+        });
+
+        // ─────────────────────────────────────────────
+        // Line
+        // ─────────────────────────────────────────────
+
+        ctx.beginPath();
+
+        points.forEach((point, index) => {
+            if (index === 0) {
+                ctx.moveTo(point.x, point.y);
+            } else {
+                ctx.lineTo(point.x, point.y);
+            }
+        });
+
+        ctx.strokeStyle = '#6f8f7d';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // ─────────────────────────────────────────────
+        // Points
+        // ─────────────────────────────────────────────
+
+        points.forEach((point, index) => {
+            const isToday = index === points.length - 1;
+
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, isToday ? 6 : 4, 0, Math.PI * 2);
+
+            ctx.fillStyle = isToday ? '#b86f52' : '#6f8f7d';
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+
+            // Show value above the point when pages were read.
+            if (point.value > 0) {
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+
+                ctx.fillText(point.value, point.x, point.y - 10);
+            }
+        });
     }
 
     renderCurrentlyReading() {
@@ -775,6 +997,7 @@ class ReadingTracker {
             currentlyReadingBookId: this.currentlyReadingBookId,
             targetDate: this.targetDate,
             nightlyReadingPlan: this.nightlyReadingPlan,
+            readingHistory: this.readingHistory,
         };
 
         const blob = new Blob([JSON.stringify(exportObject, null, 2)], {
@@ -810,7 +1033,11 @@ class ReadingTracker {
                 this.currentlyReadingBookId = data.currentlyReadingBookId || null;
                 this.targetDate = data.targetDate || this.targetDate;
                 this.nightlyReadingPlan = data.nightlyReadingPlan || null;
+                this.readingHistory = data.readingHistory || [];
             } else {
+                // Merge books
+                this.books = [...this.books, ...(data.books || [])];
+
                 const existingBooks = new Map(this.books.map((b) => [b.id, b]));
 
                 for (const importedBook of data.books || []) {
@@ -833,6 +1060,7 @@ class ReadingTracker {
             this.saveCurrentBook();
             this.saveTargetDate();
             this.saveNightlyPlan();
+            this.saveReadingHistory();
 
             this.render();
 
@@ -889,6 +1117,12 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal('log-modal-backdrop');
         }
     });
+});
+
+window.addEventListener('resize', () => {
+    if (tracker) {
+        tracker.renderReadingHistory();
+    }
 });
 
 // Export button

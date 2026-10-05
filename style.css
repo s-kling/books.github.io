@@ -159,6 +159,37 @@ main {
 }
 
 /* ──────────────────────────────────────────────────────────
+   Reading History
+   ────────────────────────────────────────────────────────── */
+
+.today-stat {
+    min-width: 0;
+}
+
+.today-stat .stat-value {
+    font-size: 3.5rem;
+}
+
+.history-period {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.reading-history-card {
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+#reading-history-chart {
+    display: block;
+    width: 100%;
+    height: 300px;
+}
+
+/* ──────────────────────────────────────────────────────────
    Sections
    ────────────────────────────────────────────────────────── */
 
@@ -845,6 +876,18 @@ main {
     .modal {
         width: 95%;
     }
+
+    .today-stat .stat-value {
+        font-size: 3rem;
+    }
+    
+    .reading-history-card {
+        padding: var(--spacing-md);
+    }
+    
+    #reading-history-chart {
+        height: 240px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -884,4 +927,8 @@ main {
     .modal-footer .btn {
         width: 100%;
     } 
+
+    .today-stat .stat-value {
+        font-size: 2.5rem;
+    }
 }

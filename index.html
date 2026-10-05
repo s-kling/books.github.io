@@ -25,22 +25,41 @@
     <!-- Stats Bar -->
     <div class="stats-bar">
         <div class="stat-card">
-        <div class="stat-value" id="stat-days">&#8212;</div>
-        <div class="stat-label">Days Left</div>
+            <div class="stat-value" id="stat-days">—</div>
+            <div class="stat-label">Days Left</div>
         </div>
+
         <div class="stat-card">
-        <div class="stat-value" id="stat-pages">&#8212;</div>
-        <div class="stat-label">Pages Remaining</div>
+            <div class="stat-value" id="stat-pages">—</div>
+            <div class="stat-label">Pages Remaining</div>
         </div>
-        <div class="stat-card highlight">
-        <div class="stat-value" id="stat-per-night">&#8212;</div>
-        <div class="stat-label">Pages / Night</div>
-        </div>
+    
         <div class="stat-card">
-        <div class="stat-value" id="stat-books">&#8212;</div>
-        <div class="stat-label">Books Left</div>
+            <div class="stat-value" id="stat-per-night">—</div>
+            <div class="stat-label">Pages / Night</div>
+        </div>
+    
+        <div class="stat-card">
+            <div class="stat-value" id="stat-books">—</div>
+            <div class="stat-label">Books Left</div>
+        </div>
+    
+        <div class="stat-card highlight today-stat">
+            <div class="stat-value" id="stat-today">0</div>
+            <div class="stat-label">Read Today</div>
         </div>
     </div>
+
+    <section class="section reading-history-section">
+        <div class="section-header">
+            <h2 class="section-title no-margin">Reading History</h2>
+            <span class="history-period">Last 7 days</span>
+        </div>
+    
+        <div class="reading-history-card">
+            <canvas id="reading-history-chart"></canvas>
+        </div>
+    </section>
 
     <!-- Currently Reading -->
     <section class="section">
